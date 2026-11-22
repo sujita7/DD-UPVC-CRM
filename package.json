@@ -1,0 +1,12 @@
+{
+  "name": "crm-enterprise",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise CRM & Operations Portal with Payroll, Attendance, Payment Tracker, Invoicing, and Quotations",
+  "scripts": {
+    "backend": "npm --prefix backend run dev",
+    "admin": "npm --prefix admin run dev",
+    "seed": "npm --prefix backend run seed",
+    "build:admin": "npm --prefix admin run build"
+  }
+}

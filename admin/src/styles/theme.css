@@ -1,0 +1,68 @@
+/* theme.css – extracted from prototype */
+:root {
+  --navy: #10243d;
+  --navy2: #183653;
+  --blue: #3978f6;
+  --ink: #182538;
+  --muted: #718096;
+  --line: #e6ebf2;
+  --bg: #f5f7fb;
+  --white: #fff;
+  --green: #17845b;
+  --amber: #b7791f;
+  --red: #c2414b;
+  --shadow: 0 8px 26px rgba(25,45,75,.055);
+}
+
+/* Global resets */
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+button, input, select { font:inherit; }
+button { cursor:pointer; }
+
+/* Button base */
+.btn {
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:white;
+  color:#334155;
+  padding:10px 14px;
+  font-weight:650;
+  font-size:12px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  white-space:nowrap;
+  transition:.15s;
+}
+.btn.primary {
+  background:var(--blue);
+  color:#fff;
+  border-color:var(--blue);
+  box-shadow:0 4px 10px #3978f628;
+}
+.btn:hover {
+  filter:brightness(.98);
+  transform:translateY(-1px);
+}
+
+/* Modal backdrop */
+.modalback { position:fixed; inset:0; background:#10243d70; z-index:20; display:none; align-items:center; justify-content:center; padding:20px; }
+.modalback.open { display:flex; }
+.modal { width:min(600px,100%); max-height:90vh; overflow:auto; background:white; border-radius:16px; box-shadow:0 24px 80px #10243d40; }
+.modalhead, .modalfoot { display:flex; justify-content:space-between; align-items:center; padding:18px 20px; border-bottom:1px solid var(--line); }
+.modalfoot { border-top:1px solid var(--line); border-bottom:none; }
+
+/* Form grid */
+.formgrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field label { font-size:11px; font-weight:750; color:#526176; }
+.field input, .field select, .field textarea { border:1px solid #dfe6ef; border-radius:9px; padding:10px 12px; background:#fff; color:var(--ink); outline:none; }
+
+/* Status pill */
+.pill { display:inline-flex; align-items:center; gap:5px; border-radius:20px; padding:5px 9px; font-size:10px; font-weight:750; white-space:nowrap; }
+.pill.green { background:#e5f7ef; color:#16845b; }
+.pill.blue { background:#e8f0ff; color:#3267ce; }
+.pill.amber { background:#fff3dc; color:#9a670e; }
+.pill.red { background:#fde9eb; color:#b93b45; }
+
