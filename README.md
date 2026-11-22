@@ -283,4 +283,4 @@ The compiled output will be generated in `admin/dist/`.
 
 ## 📄 License & Ownership
 Copyright © 2026 **DD UPVC WINDOW SYSTEMS**. All rights reserved.
-Developed by **Arciox / Sujita Kumari** (`sujita.kri07@gmail.com`).
+Developed by ** Sujita Kumari** (`sujita.kri07@gmail.com`).
