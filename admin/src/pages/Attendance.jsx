@@ -1006,20 +1006,7 @@ export default function Attendance() {
         </div>
       )}
 
-      {/* Feature section grid */}
-      <div className="grid sectiongrid" style={{ marginTop: 16 }}>
-        {[
-          ["Manual check-in / check-out", "Admin enters actual arrival and departure time; edits should be audit logged.", "◷"],
-          ["Day classification", "Present, absent, half-day, paid/unpaid leave, weekly off and public holiday.", "▦"],
-          ["Overtime & late rules", "Configurable grace period, overtime approvals and shift schedule.", "⚙"],
-        ].map((a, i) => (
-          <div className="card feature" key={i}>
-            <div className="featureicon">{a[2]}</div>
-            <h3>{a[0]}</h3>
-            <p>{a[1]}</p>
-          </div>
-        ))}
-      </div>
+
 
       {/* Manual Attendance Modal */}
       {modalOpen && (
