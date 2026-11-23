@@ -5,20 +5,38 @@ import { invoiceAPI, customerAPI, productAPI, settingsAPI } from "../services/ap
 import ProformaInvoiceTemplate from "../components/ProformaInvoiceTemplate";
 import { UPVC_WINDOW_DESIGNS, WINDOW_DESIGN_CATEGORIES } from "../data/windowDesigns";
 
+function isFullySettledOrPaid(statusStr) {
+  const s = (statusStr || "").toLowerCase().trim();
+  if (!s || s === "unpaid" || s === "due" || s === "draft" || s === "overdue" || s === "cancelled") {
+    return false;
+  }
+  if (s.includes("part")) {
+    return false;
+  }
+  return s === "paid" || s === "settle" || s === "settled";
+}
+
+function isPartiallyPaid(statusStr) {
+  const s = (statusStr || "").toLowerCase().trim();
+  return s.includes("part");
+}
+
 function statusPill(s) {
-  const x = (s || "").toLowerCase();
-  let c = /paid|settle/.test(x) && !/unpaid|due|part/.test(x)
-    ? "green"
-    : /overdue|cancelled/.test(x)
-    ? "red"
-    : /due|unpaid/.test(x)
-    ? "red"
-    : /part/.test(x)
-    ? "amber"
-    : "blue";
+  const x = (s || "").toLowerCase().trim();
+  let c = "blue";
+  if (isFullySettledOrPaid(x)) {
+    c = "green";
+  } else if (/overdue|cancelled/.test(x)) {
+    c = "red";
+  } else if (/due|unpaid/.test(x)) {
+    c = "red";
+  } else if (isPartiallyPaid(x)) {
+    c = "amber";
+  }
   let label = s ? s.charAt(0).toUpperCase() + s.slice(1) : "Due";
   if (x === "unpaid") label = "Due";
   if (x === "settle" || x === "settled") label = "Settle";
+  if (x === "partially-paid" || x === "partially paid") label = "Partially Paid";
   return <span className={`pill ${c}`}>{label}</span>;
 }
 
@@ -385,7 +403,7 @@ export default function Invoices() {
     const state = inv.clientState || extractStateString(inv.customerSnapshot || inv.customer, billing);
 
     const invStatus = (inv.paymentStatus === "unpaid" ? "due" : (inv.paymentStatus || inv.status || "due")).toLowerCase();
-    const isSettled = /paid|settle/.test(invStatus);
+    const isSettled = isFullySettledOrPaid(invStatus);
     const invTotal = Number(inv.totalAmount || inv.grandTotal || 0);
     const resolvedInitialPaid = Number(inv.paidAmount) > 0 ? Number(inv.paidAmount) : (isSettled ? invTotal : 0);
 
@@ -759,9 +777,18 @@ export default function Invoices() {
       form.status === "settle" ||
       form.status === "paid";
 
-    const resolvedPaidAmount = isSettledOrPaid
-      ? (Number(form.paidAmount) > 0 ? Number(form.paidAmount) : totalAmount)
-      : (Number(form.paidAmount) || 0);
+    const isPartiallyPaid =
+      form.paymentStatus === "partially-paid" ||
+      form.status === "partially-paid";
+
+    let resolvedPaidAmount = 0;
+    if (isSettledOrPaid) {
+      resolvedPaidAmount = totalAmount;
+    } else if (isPartiallyPaid) {
+      resolvedPaidAmount = Number(form.paidAmount) || 0;
+    } else {
+      resolvedPaidAmount = 0;
+    }
     const resolvedBalanceAmount = Math.max(0, totalAmount - resolvedPaidAmount);
 
     const payload = {
@@ -858,22 +885,33 @@ export default function Invoices() {
       (inv.quotationNumber || "").toLowerCase().includes(search.toLowerCase());
     if (!matches) return false;
     if (statusFilter === "All statuses") return true;
-    const current = (inv.paymentStatus || inv.status || "due").toLowerCase();
-    const filter = statusFilter.toLowerCase();
+    const current = (inv.paymentStatus || inv.status || "due").toLowerCase().trim();
+    const filter = statusFilter.toLowerCase().trim();
     if (filter === "due" && (current === "due" || current === "unpaid")) return true;
-    if (filter === "settle" && (current === "settle" || current === "settled" || current === "paid")) return true;
+    if (filter === "settle" && (current === "settle" || current === "settled")) return true;
+    if (filter === "paid" && current === "paid") return true;
+    if (filter === "partially-paid" && isPartiallyPaid(current)) return true;
     return current === filter;
   });
 
   const totalBilled = invoices.reduce((acc, inv) => acc + Number(inv.totalAmount || inv.grandTotal || 0), 0);
   const totalPaid = invoices.reduce((acc, inv) => {
-    const isSettled = /paid|settle/.test((inv.paymentStatus || inv.status || "").toLowerCase());
+    const status = (inv.paymentStatus || inv.status || "").toLowerCase().trim();
     const invTotal = Number(inv.totalAmount || inv.grandTotal || 0);
     const recordedPaid = Number(inv.paidAmount || 0);
-    if (isSettled) {
+
+    // 1. Settle or Paid: count full settled amount
+    if (isFullySettledOrPaid(status)) {
       return acc + (recordedPaid > 0 ? recordedPaid : invTotal);
     }
-    return acc + recordedPaid;
+
+    // 2. Partially Paid: only add how much cost is already paid
+    if (isPartiallyPaid(status)) {
+      return acc + recordedPaid;
+    }
+
+    // 3. Due, Unpaid, Draft, Overdue, Cancelled: DO NOT add to Total Collected
+    return acc;
   }, 0);
   const totalDue = Math.max(0, totalBilled - totalPaid);
 
@@ -928,7 +966,7 @@ export default function Invoices() {
                 <span>Payment Health</span>
                 <span className="staticon">◷</span>
               </div>
-              <strong>{invoices.filter((i) => /paid|settle/.test((i.paymentStatus || i.status || "").toLowerCase())).length} / {invoices.length}</strong>
+              <strong>{invoices.filter((i) => isFullySettledOrPaid(i.paymentStatus || i.status)).length} / {invoices.length}</strong>
               <span className="trend" style={{ color: "var(--green)" }}>Fully cleared accounts</span>
             </div>
           </div>
@@ -1739,14 +1777,22 @@ export default function Invoices() {
                       onChange={(e) => {
                         const newStatus = e.target.value;
                         const isSettleOrPaid = newStatus === "settle" || newStatus === "paid";
-                        setForm((prev) => ({
-                          ...prev,
-                          paymentStatus: newStatus,
-                          status: newStatus,
-                          paidAmount: isSettleOrPaid
-                            ? (Number(prev.paidAmount) > 0 ? prev.paidAmount : totalAmount)
-                            : (newStatus === "due" && Number(prev.paidAmount) === totalAmount ? 0 : prev.paidAmount),
-                        }));
+                        setForm((prev) => {
+                          let nextPaid = Number(prev.paidAmount) || 0;
+                          if (isSettleOrPaid) {
+                            nextPaid = totalAmount;
+                          } else if (newStatus === "due") {
+                            nextPaid = 0;
+                          } else if (newStatus === "partially-paid" && (nextPaid === 0 || nextPaid >= totalAmount)) {
+                            nextPaid = "";
+                          }
+                          return {
+                            ...prev,
+                            paymentStatus: newStatus,
+                            status: newStatus,
+                            paidAmount: nextPaid,
+                          };
+                        });
                       }}
                     >
                       <option value="due">Due</option>
@@ -1761,7 +1807,24 @@ export default function Invoices() {
                     <input
                       type="number"
                       value={form.paidAmount !== undefined ? form.paidAmount : ""}
-                      onChange={(e) => setForm({ ...form, paidAmount: Number(e.target.value) || 0 })}
+                      onChange={(e) => {
+                        const val = e.target.value === "" ? "" : Number(e.target.value) || 0;
+                        setForm((prev) => {
+                          let nextStatus = prev.paymentStatus;
+                          const numericVal = Number(val) || 0;
+                          if (numericVal > 0 && numericVal < totalAmount && prev.paymentStatus !== "partially-paid") {
+                            nextStatus = "partially-paid";
+                          } else if (numericVal >= totalAmount && totalAmount > 0 && prev.paymentStatus !== "settle" && prev.paymentStatus !== "paid") {
+                            nextStatus = "settle";
+                          }
+                          return {
+                            ...prev,
+                            paidAmount: val,
+                            paymentStatus: nextStatus,
+                            status: nextStatus,
+                          };
+                        });
+                      }}
                       placeholder="0"
                     />
                   </div>

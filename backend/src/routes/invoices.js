@@ -103,10 +103,19 @@ router.post("/api/invoices", requireAuth, async (req, res, next) => {
       rest.status === "settle" ||
       rest.status === "paid";
 
+    const isPartiallyPaid =
+      rest.paymentStatus === "partially-paid" ||
+      rest.status === "partially-paid";
+
     const invTotal = Number(rest.totalAmount || rest.grandTotal || 0);
-    const resolvedPaid = isSettled
-      ? (Number(rest.paidAmount) > 0 ? Number(rest.paidAmount) : invTotal)
-      : (Number(rest.paidAmount) || 0);
+    let resolvedPaid = 0;
+    if (isSettled) {
+      resolvedPaid = invTotal;
+    } else if (isPartiallyPaid) {
+      resolvedPaid = Number(rest.paidAmount) || 0;
+    } else {
+      resolvedPaid = 0;
+    }
     const resolvedBalance = Math.max(0, invTotal - resolvedPaid);
 
     const invoice = new Invoice({
@@ -155,18 +164,28 @@ router.put("/api/invoices/:id", requireAuth, async (req, res, next) => {
       req.body.status === "settle" ||
       req.body.status === "paid";
 
+    const isPartiallyPaid =
+      req.body.paymentStatus === "partially-paid" ||
+      req.body.status === "partially-paid";
+
+    const invTotal = Number(
+      req.body.totalAmount !== undefined
+        ? req.body.totalAmount
+        : req.body.grandTotal !== undefined
+        ? req.body.grandTotal
+        : invoice.totalAmount || invoice.grandTotal || 0
+    );
+
     if (isSettled) {
-      const invTotal = Number(
-        req.body.totalAmount !== undefined
-          ? req.body.totalAmount
-          : req.body.grandTotal !== undefined
-          ? req.body.grandTotal
-          : invoice.totalAmount || invoice.grandTotal || 0
-      );
-      if (!req.body.paidAmount || Number(req.body.paidAmount) <= 0) {
-        req.body.paidAmount = invTotal;
-      }
-      req.body.balanceAmount = Math.max(0, invTotal - Number(req.body.paidAmount));
+      req.body.paidAmount = invTotal;
+      req.body.balanceAmount = 0;
+    } else if (isPartiallyPaid) {
+      const p = Number(req.body.paidAmount) || 0;
+      req.body.paidAmount = p;
+      req.body.balanceAmount = Math.max(0, invTotal - p);
+    } else if (req.body.paymentStatus === "due" || req.body.status === "due") {
+      req.body.paidAmount = 0;
+      req.body.balanceAmount = invTotal;
     }
 
     Object.assign(invoice, req.body);
