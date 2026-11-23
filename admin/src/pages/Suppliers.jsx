@@ -301,20 +301,7 @@ export default function Suppliers() {
         </div>
       </div>
 
-      {/* Feature section grid */}
-      <div className="grid sectiongrid" style={{ marginTop: 16 }}>
-        {[
-          ["Supplier Directory", "Contacts, contracted material rates and credit payment terms.", "♙"],
-          ["Purchase Orders", "Draft, approve and receive uPVC, aluminium profiles, glass and locks.", "▤"],
-          ["Supplier Balances", "Track vendor invoices, material returns and bank disbursements.", "₹"],
-        ].map((a, i) => (
-          <div className="card feature" key={i}>
-            <div className="featureicon">{a[2]}</div>
-            <h3>{a[0]}</h3>
-            <p>{a[1]}</p>
-          </div>
-        ))}
-      </div>
+
 
       {/* Modal */}
       {isModalOpen && (
