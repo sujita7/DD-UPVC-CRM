@@ -19,6 +19,7 @@ export default function Employees() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const [form, setForm] = useState({
+    employeeId: "",
     name: "",
     phone: "",
     email: "",
@@ -66,7 +67,22 @@ export default function Employees() {
   const openCreate = () => {
     setEditingEmp(null);
     setErrorMessage("");
+
+    // Automatically suggest next Employee ID (e.g. EMP0005)
+    let nextId = "EMP0001";
+    if (employees.length > 0) {
+      const nums = employees
+        .map((e) => {
+          const m = (e.employeeId || "").match(/(\d+)/);
+          return m ? parseInt(m[1], 10) : 0;
+        })
+        .filter((n) => !isNaN(n) && n > 0);
+      const maxNum = nums.length > 0 ? Math.max(...nums) : employees.length;
+      nextId = `EMP${String(maxNum + 1).padStart(4, "0")}`;
+    }
+
     setForm({
+      employeeId: nextId,
       name: "",
       phone: "",
       email: "",
@@ -90,6 +106,7 @@ export default function Employees() {
     setEditingEmp(emp);
     setErrorMessage("");
     setForm({
+      employeeId: emp.employeeId || "",
       name: emp.name || `${emp.firstName || ""} ${emp.lastName || ""}`.trim(),
       phone: emp.phone || "",
       email: emp.email || "",
@@ -113,6 +130,10 @@ export default function Employees() {
     setErrorMessage("");
 
     // Client-side Mandatory Checks
+    if (!form.employeeId.trim()) {
+      setErrorMessage("Employee ID is required.");
+      return;
+    }
     if (!form.name.trim()) {
       setErrorMessage("Employee name is required.");
       return;
@@ -135,11 +156,24 @@ export default function Employees() {
     }
 
     // Client-side Duplicate Check for instant UI feedback
+    const trimmedEmpId = (form.employeeId || "").trim().toUpperCase();
     const trimmedPhone = form.phone.trim();
     const trimmedAadhar = form.aadharNumber.trim();
 
+    if (trimmedEmpId) {
+      const duplicateEmpId = employees.find(
+        (e) =>
+          (e.employeeId || "").toUpperCase() === trimmedEmpId &&
+          (!editingEmp || (e._id !== editingEmp._id && e.id !== editingEmp.id))
+      );
+      if (duplicateEmpId) {
+        setErrorMessage(`Employee ID '${trimmedEmpId}' is already assigned to another employee.`);
+        return;
+      }
+    }
+
     const duplicatePhone = employees.find(
-      (e) => e.phone === trimmedPhone && (!editingEmp || e._id !== editingEmp._id)
+      (e) => e.phone === trimmedPhone && (!editingEmp || (e._id !== editingEmp._id && e.id !== editingEmp.id))
     );
     if (duplicatePhone) {
       setErrorMessage(`Employee already exists with mobile number: ${trimmedPhone}`);
@@ -149,7 +183,7 @@ export default function Employees() {
     const duplicateAadhar = employees.find(
       (e) =>
         (e.documents?.aadharNumber === trimmedAadhar || e.aadharNumber === trimmedAadhar) &&
-        (!editingEmp || e._id !== editingEmp._id)
+        (!editingEmp || (e._id !== editingEmp._id && e.id !== editingEmp.id))
     );
     if (duplicateAadhar) {
       setErrorMessage(`Employee already exists with Aadhar number: ${trimmedAadhar}`);
@@ -158,6 +192,7 @@ export default function Employees() {
 
     try {
       const payload = {
+        employeeId: trimmedEmpId || undefined,
         name: form.name.trim(),
         phone: trimmedPhone,
         email: form.email?.trim() || undefined,
@@ -178,7 +213,7 @@ export default function Employees() {
       };
 
       if (editingEmp) {
-        await employeeAPI.update(editingEmp._id, payload);
+        await employeeAPI.update(editingEmp._id || editingEmp.id, payload);
         message.success("Employee updated successfully.");
       } else {
         await employeeAPI.create(payload);
@@ -409,6 +444,17 @@ export default function Employees() {
 
               <div className="formgrid">
                 <div className="field">
+                  <label>Employee ID *</label>
+                  <input
+                    value={form.employeeId}
+                    onChange={(e) => {
+                      setForm({ ...form, employeeId: e.target.value.toUpperCase() });
+                      setErrorMessage("");
+                    }}
+                    placeholder="e.g. EMP0001"
+                  />
+                </div>
+                <div className="field">
                   <label>Employee name *</label>
                   <input
                     value={form.name}
@@ -564,7 +610,7 @@ export default function Employees() {
               </div>
 
               <p className="muted" style={{ fontSize: 11, marginTop: 16 }}>
-                Mandatory fields: Name, Phone, Aadhar number, Joining Date, Base Salary. Email and Bank details are optional.
+                Mandatory fields: Employee ID, Name, Phone, Aadhar number, Joining Date, Base Salary. Email and Bank details are optional.
               </p>
             </div>
             <div className="modalfoot">

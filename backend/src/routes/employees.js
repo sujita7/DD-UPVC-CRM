@@ -70,6 +70,21 @@ router.post("/api/employees", requireAuth, async (req, res, next) => {
       });
     }
 
+    // Check for duplicate employeeId
+    if (data.employeeId && data.employeeId.trim()) {
+      data.employeeId = data.employeeId.trim();
+      const existingEmpId = await Employee.findOne({ employeeId: data.employeeId });
+      if (existingEmpId) {
+        return res.status(400).json({
+          error: "DUPLICATE_EMPLOYEE_ID",
+          message: `Employee ID ${data.employeeId} is already in use.`,
+        });
+      }
+    } else {
+      const count = await Employee.countDocuments();
+      data.employeeId = `EMP${String(count + 1).padStart(4, "0")}`;
+    }
+
     // Check for duplicate phone
     if (phone) {
       const existingPhone = await Employee.findOne({ phone });
@@ -144,6 +159,21 @@ router.put("/api/employees/:id", requireAuth, async (req, res, next) => {
     const phone = data.phone ? data.phone.trim() : null;
     const aadharNumber = data.aadharNumber || data.documents?.aadharNumber;
     const trimmedAadhar = aadharNumber ? aadharNumber.trim() : null;
+
+    // Check for duplicate employeeId on other employees
+    if (data.employeeId && data.employeeId.trim()) {
+      data.employeeId = data.employeeId.trim();
+      const existingEmpId = await Employee.findOne({
+        employeeId: data.employeeId,
+        _id: { $ne: req.params.id },
+      });
+      if (existingEmpId) {
+        return res.status(400).json({
+          error: "DUPLICATE_EMPLOYEE_ID",
+          message: `Employee ID ${data.employeeId} is already in use by another employee.`,
+        });
+      }
+    }
 
     // Check for duplicate phone on other employees
     if (phone) {
