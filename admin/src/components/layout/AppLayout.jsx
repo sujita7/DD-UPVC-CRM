@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import logoImg from "../../public/ddupvc-logo.jpeg";
 
 const groups = [
   { title: "OVERVIEW", items: [["Dashboard","▦","/dashboard"],["Admin Panel","⌘","/admin"]] },
@@ -37,7 +38,7 @@ export default function AppLayout() {
       {/* ── Sidebar ── */}
       <aside className={`sidebar${sidebarOpen ? " open" : ""}`} id="sidebar">
         <div className="brand">
-          <div className="logo"><img src="src/public/ddupvc-logo.png"/></div>
+          <div className="logo"><img src={logoImg} alt="DD UPVC Logo" onError={(e) => { e.currentTarget.src = "/ddupvc-logo.png"; }} /></div>
           <div>
             <b>DD UPVC</b>  
             <small>WINDOWS SYSTEM ERP</small>
@@ -81,8 +82,6 @@ export default function AppLayout() {
             <input placeholder="Search customers, orders, invoices…" aria-label="Search" />
           </div>
           <div className="topright">
-            <button className="iconbtn" title="Notifications">🔔</button>
-            <button className="iconbtn" title="Help">?</button>
             <div style={{ position: "relative" }}>
               <div
                 className="profile"
