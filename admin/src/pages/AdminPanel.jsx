@@ -4,33 +4,6 @@ import { Spin, Modal, Form, Input, Select, message, Popconfirm } from "antd";
 import dayjs from "dayjs";
 import { dashboardAPI, adminAPI } from "../services/api";
 
-const adminControls = [
-  {
-    title: "User & Role Management",
-    desc: "Invite employees & managers, configure system permissions",
-    ico: "♙",
-    action: "/employees",
-  },
-  {
-    title: "Company Profile & Tax",
-    desc: "Legal trade name, GSTIN, bank accounts, invoice prefix",
-    ico: "⚙",
-    action: "/settings",
-  },
-  {
-    title: "Approval Workflows & Tasks",
-    desc: "Follow up on customer quotes, workshop approvals & milestones",
-    ico: "✓",
-    action: "/tasks",
-  },
-  {
-    title: "Financial Audits & Invoicing",
-    desc: "Review tax invoices, collections, credit notes & ledger",
-    ico: "◷",
-    action: "/invoices",
-  },
-];
-
 function rolePill(r) {
   const role = (r || "admin").toLowerCase();
   if (role === "superadmin") return <span className="pill green">Super Admin</span>;
@@ -185,52 +158,6 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          {/* Admin controls + Quick actions */}
-          <div className="grid two">
-            <div className="card">
-              <div className="cardhead">
-                <h2>Admin controls</h2>
-                <span className="pill blue">Owner access</span>
-              </div>
-              <div className="cardbody">
-                <div className="grid sectiongrid">
-                  {adminControls.map((c, i) => (
-                    <div className="card feature" key={i}>
-                      <div className="featureicon">{c.ico}</div>
-                      <h3>{c.title}</h3>
-                      <p>{c.desc}</p>
-                      <button className="btn" onClick={() => navigate(c.action)}>
-                        Configure ↗
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="cardhead">
-                <h2>Admin quick actions</h2>
-              </div>
-              <div className="cardbody" style={{ display: "grid", gap: 10 }}>
-                <button className="btn" onClick={() => setIsModalOpen(true)}>
-                  ＋ Invite / Register an Admin User
-                </button>
-                <button className="btn" onClick={() => navigate("/attendance")}>
-                  ◷ Review Staff Attendance
-                </button>
-                <button className="btn" onClick={() => navigate("/payroll")}>
-                  ₹ Review Monthly Payroll
-                </button>
-                <button className="btn" onClick={() => navigate("/settings")}>
-                  ⚙ DD UPVC Company Settings &amp; GSTIN
-                </button>
-                <p className="muted" style={{ fontSize: 11, marginTop: 4 }}>
-                  Role permissions, audit trails, database records and approval rules are backed by the live MySQL relational database.
-                </p>
-              </div>
-            </div>
-          </div>
 
           {/* System Users & Administrators Table */}
           <div className="card" style={{ marginTop: 20 }}>
