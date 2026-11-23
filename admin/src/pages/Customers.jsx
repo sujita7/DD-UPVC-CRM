@@ -309,20 +309,7 @@ export default function Customers() {
         </div>
       </div>
 
-      {/* Feature section grid */}
-      <div className="grid sectiongrid" style={{ marginTop: 16 }}>
-        {[
-          ["Lead & Account Capture", "Store customer business entities, site delivery addresses and tax numbers.", "♙"],
-          ["Outstanding Balance Tracking", "Automatic ledger update with tax invoices, partial payments and advances.", "₹"],
-          ["Quotation & Order Sync", "Convert customer enquiries into glass & window quotes and production orders.", "▣"],
-        ].map((a, i) => (
-          <div className="card feature" key={i}>
-            <div className="featureicon">{a[2]}</div>
-            <h3>{a[0]}</h3>
-            <p>{a[1]}</p>
-          </div>
-        ))}
-      </div>
+
 
       {/* Add / Edit Customer Modal */}
       {isModalOpen && (
