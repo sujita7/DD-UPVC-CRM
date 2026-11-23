@@ -395,23 +395,7 @@ export default function Employees() {
         </div>
       </div>
 
-      {/* Feature Section Grid */}
-      <div className="grid sectiongrid" style={{ marginTop: 16 }}>
-        {[
-          ["Employee directory", "Profiles, roles and employment records", "♙"],
-          ["Employee documents", "Aadhar, contracts, IDs and bank accounts", "▤"],
-          ["Salary structures", "Earnings, allowances and deductions", "₹"],
-        ].map(([t, d, ic], i) => (
-          <div className="card feature" key={i}>
-            <div className="featureicon">{ic}</div>
-            <h3>{t}</h3>
-            <p>{d}</p>
-            <button className="btn" onClick={() => message.info(`${t} module active.`)}>
-              Open module ↗
-            </button>
-          </div>
-        ))}
-      </div>
+
 
       {/* Add / Edit Employee Modal with Aadhar (Mandatory) & Bank Details (Optional) */}
       {showModal && (
