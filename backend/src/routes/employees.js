@@ -4,6 +4,22 @@ import { Employee } from "../models/index.js";
 
 const router = Router();
 
+function safeObject(val) {
+  if (!val) return {};
+  if (typeof val === "object") {
+    return typeof val.toObject === "function" ? val.toObject() : val;
+  }
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      return typeof parsed === "object" && parsed !== null ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+  return {};
+}
+
 // GET /api/employees - List all employees
 router.get("/api/employees", requireAuth, async (req, res, next) => {
   try {
@@ -199,8 +215,8 @@ router.put("/api/employees/:id", requireAuth, async (req, res, next) => {
         });
       }
       data.documents = {
-        ...(employee.documents?.toObject() || {}),
-        ...(data.documents || {}),
+        ...safeObject(employee.documents),
+        ...safeObject(data.documents),
         aadharNumber: trimmedAadhar,
       };
     }
@@ -210,8 +226,8 @@ router.put("/api/employees/:id", requireAuth, async (req, res, next) => {
     }
     if (data.baseSalary !== undefined) {
       data.salary = {
-        ...(employee.salary?.toObject() || {}),
-        ...(data.salary || {}),
+        ...safeObject(employee.salary),
+        ...safeObject(data.salary),
         basic: Number(data.baseSalary) || 0,
         grossSalary: Number(data.baseSalary) || 0,
         baseSalary: Number(data.baseSalary) || 0,
@@ -222,8 +238,8 @@ router.put("/api/employees/:id", requireAuth, async (req, res, next) => {
     }
     if (data.bankDetails) {
       data.bankDetails = {
-        ...(employee.bankDetails?.toObject() || {}),
-        ...data.bankDetails,
+        ...safeObject(employee.bankDetails),
+        ...safeObject(data.bankDetails),
       };
     }
 
