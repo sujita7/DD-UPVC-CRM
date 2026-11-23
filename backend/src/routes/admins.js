@@ -8,7 +8,7 @@ const router = Router();
  * GET /api/admins
  * List all admins (superadmin only)
  */
-router.get("/api/admins", requireAuth, requireSuperAdmin, async (req, res, next) => {
+router.get("/api/admins", requireAuth, requireAdminOrHigher, async (req, res, next) => {
   try {
     const { page = 1, limit = 20, status, role, search } = req.query;
     const skip = (page - 1) * limit;
@@ -63,7 +63,7 @@ router.get("/api/admins/:id", requireAuth, requireSuperAdmin, async (req, res, n
  * POST /api/admins
  * Create new admin (superadmin only)
  */
-router.post("/api/admins", requireAuth, requireSuperAdmin, async (req, res, next) => {
+router.post("/api/admins", requireAuth, requireAdminOrHigher, async (req, res, next) => {
   try {
     const { name, email, password, role, permissions, phone, department, designation } = req.body || {};
 
