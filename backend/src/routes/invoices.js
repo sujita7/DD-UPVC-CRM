@@ -97,6 +97,18 @@ router.post("/api/invoices", requireAuth, async (req, res, next) => {
     const prefix = rest.invoiceType === "proforma" ? "PI" : "INV";
     const invoiceNumber = rest.invoiceNumber || `${prefix}-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
 
+    const isSettled =
+      rest.paymentStatus === "settle" ||
+      rest.paymentStatus === "paid" ||
+      rest.status === "settle" ||
+      rest.status === "paid";
+
+    const invTotal = Number(rest.totalAmount || rest.grandTotal || 0);
+    const resolvedPaid = isSettled
+      ? (Number(rest.paidAmount) > 0 ? Number(rest.paidAmount) : invTotal)
+      : (Number(rest.paidAmount) || 0);
+    const resolvedBalance = Math.max(0, invTotal - resolvedPaid);
+
     const invoice = new Invoice({
       invoiceNumber,
       invoiceType: rest.invoiceType || "tax-invoice",
@@ -114,6 +126,8 @@ router.post("/api/invoices", requireAuth, async (req, res, next) => {
       dueDate: rest.dueDate ? new Date(rest.dueDate) : new Date(Date.now() + 30 * 86400000),
       createdBy: req.admin._id,
       ...rest,
+      paidAmount: resolvedPaid,
+      balanceAmount: resolvedBalance,
     });
 
     await invoice.save();
@@ -135,8 +149,24 @@ router.put("/api/invoices/:id", requireAuth, async (req, res, next) => {
     const invoice = await Invoice.findById(req.params.id);
     if (!invoice) return res.status(404).json({ error: "NOT_FOUND", message: "Invoice not found." });
 
-    if (invoice.paymentStatus === "paid") {
-      return res.status(403).json({ error: "FORBIDDEN", message: "Cannot modify a fully paid invoice." });
+    const isSettled =
+      req.body.paymentStatus === "settle" ||
+      req.body.paymentStatus === "paid" ||
+      req.body.status === "settle" ||
+      req.body.status === "paid";
+
+    if (isSettled) {
+      const invTotal = Number(
+        req.body.totalAmount !== undefined
+          ? req.body.totalAmount
+          : req.body.grandTotal !== undefined
+          ? req.body.grandTotal
+          : invoice.totalAmount || invoice.grandTotal || 0
+      );
+      if (!req.body.paidAmount || Number(req.body.paidAmount) <= 0) {
+        req.body.paidAmount = invTotal;
+      }
+      req.body.balanceAmount = Math.max(0, invTotal - Number(req.body.paidAmount));
     }
 
     Object.assign(invoice, req.body);

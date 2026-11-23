@@ -384,6 +384,11 @@ export default function Invoices() {
     const city = inv.clientCity || extractCityString(inv.customerSnapshot || inv.customer, billing);
     const state = inv.clientState || extractStateString(inv.customerSnapshot || inv.customer, billing);
 
+    const invStatus = (inv.paymentStatus === "unpaid" ? "due" : (inv.paymentStatus || inv.status || "due")).toLowerCase();
+    const isSettled = /paid|settle/.test(invStatus);
+    const invTotal = Number(inv.totalAmount || inv.grandTotal || 0);
+    const resolvedInitialPaid = Number(inv.paidAmount) > 0 ? Number(inv.paidAmount) : (isSettled ? invTotal : 0);
+
     setForm({
       customerId: custId,
       invoiceNumber: inv.invoiceNumber || "",
@@ -397,10 +402,10 @@ export default function Invoices() {
       bankDetails: bank,
       invoiceDate: inv.invoiceDate ? dayjs(inv.invoiceDate).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
       dueDate: inv.dueDate ? dayjs(inv.dueDate).format("YYYY-MM-DD") : dayjs().add(15, "day").format("YYYY-MM-DD"),
-      status: inv.status === "unpaid" ? "due" : (inv.status || "due"),
-      paymentStatus: inv.paymentStatus === "unpaid" ? "due" : (inv.paymentStatus || inv.status || "due"),
+      status: invStatus,
+      paymentStatus: invStatus,
       paymentTerms: inv.paymentTerms || "net-30",
-      paidAmount: Number(inv.paidAmount) || 0,
+      paidAmount: resolvedInitialPaid,
       profileSeries: seriesVal,
       glassType: inv.glassType || "",
       hardware: inv.hardware || "",
@@ -748,6 +753,17 @@ export default function Invoices() {
       return;
     }
 
+    const isSettledOrPaid =
+      form.paymentStatus === "settle" ||
+      form.paymentStatus === "paid" ||
+      form.status === "settle" ||
+      form.status === "paid";
+
+    const resolvedPaidAmount = isSettledOrPaid
+      ? (Number(form.paidAmount) > 0 ? Number(form.paidAmount) : totalAmount)
+      : (Number(form.paidAmount) || 0);
+    const resolvedBalanceAmount = Math.max(0, totalAmount - resolvedPaidAmount);
+
     const payload = {
       customer: form.customerId,
       invoiceNumber: form.invoiceNumber || undefined,
@@ -764,8 +780,8 @@ export default function Invoices() {
       status: form.status,
       paymentStatus: form.paymentStatus,
       paymentTerms: form.paymentTerms,
-      paidAmount: Number(form.paidAmount) || 0,
-      balanceAmount: Math.max(0, totalAmount - (Number(form.paidAmount) || 0)),
+      paidAmount: resolvedPaidAmount,
+      balanceAmount: resolvedBalanceAmount,
       profileSeries: form.profileSeries,
       glassType: form.glassType,
       hardware: form.hardware,
@@ -850,7 +866,15 @@ export default function Invoices() {
   });
 
   const totalBilled = invoices.reduce((acc, inv) => acc + Number(inv.totalAmount || inv.grandTotal || 0), 0);
-  const totalPaid = invoices.reduce((acc, inv) => acc + Number(inv.paidAmount || 0), 0);
+  const totalPaid = invoices.reduce((acc, inv) => {
+    const isSettled = /paid|settle/.test((inv.paymentStatus || inv.status || "").toLowerCase());
+    const invTotal = Number(inv.totalAmount || inv.grandTotal || 0);
+    const recordedPaid = Number(inv.paidAmount || 0);
+    if (isSettled) {
+      return acc + (recordedPaid > 0 ? recordedPaid : invTotal);
+    }
+    return acc + recordedPaid;
+  }, 0);
   const totalDue = Math.max(0, totalBilled - totalPaid);
 
   return (
@@ -904,7 +928,7 @@ export default function Invoices() {
                 <span>Payment Health</span>
                 <span className="staticon">◷</span>
               </div>
-              <strong>{invoices.filter((i) => (i.paymentStatus || i.status) === "paid").length} / {invoices.length}</strong>
+              <strong>{invoices.filter((i) => /paid|settle/.test((i.paymentStatus || i.status || "").toLowerCase())).length} / {invoices.length}</strong>
               <span className="trend" style={{ color: "var(--green)" }}>Fully cleared accounts</span>
             </div>
           </div>
@@ -1712,7 +1736,18 @@ export default function Invoices() {
                     <label>Payment Status</label>
                     <select
                       value={form.paymentStatus}
-                      onChange={(e) => setForm({ ...form, paymentStatus: e.target.value, status: e.target.value })}
+                      onChange={(e) => {
+                        const newStatus = e.target.value;
+                        const isSettleOrPaid = newStatus === "settle" || newStatus === "paid";
+                        setForm((prev) => ({
+                          ...prev,
+                          paymentStatus: newStatus,
+                          status: newStatus,
+                          paidAmount: isSettleOrPaid
+                            ? (Number(prev.paidAmount) > 0 ? prev.paidAmount : totalAmount)
+                            : (newStatus === "due" && Number(prev.paidAmount) === totalAmount ? 0 : prev.paidAmount),
+                        }));
+                      }}
                     >
                       <option value="due">Due</option>
                       <option value="settle">Settle</option>
